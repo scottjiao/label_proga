@@ -2,6 +2,11 @@ import  torch
 from    torch import nn
 from    torch.nn import functional as F
 
+import warnings
+import os
+import numpy as np
+import csv
+from matplotlib import pyplot as plt
 
 
 
@@ -59,3 +64,59 @@ def dot(x, y, sparse=False):
 
     return res
 
+
+class CountRecorder():
+    def __init__(self):
+        self.now_count=0
+        
+    def do_count(self):
+        self.now_count+=1
+    
+    def get_count(self):
+        return self.now_count
+
+
+class MaxCountRecorder(CountRecorder):
+
+    def __init__(self,number_of_maximal_count):
+        if number_of_maximal_count:
+            self.maximal=number_of_maximal_count
+        else:
+            self.maximal=np.float('inf')
+        self.now_count=0
+
+
+    def check_then_count(self):
+        if self.now_count>self.maximal:
+            return False
+        self.now_count+=1
+        return True
+
+
+class simple_ploter():
+
+    def __init__(self,save_name='simple_plot'):
+        self.countRecorder=CountRecorder
+        self.save_name=save_name
+        self.x_list=[]
+        self.y_list=[]
+
+    def record_data(self,y,x=None):
+        if x==None:
+            self.countRecorder.do_count()  # add 1 to the count recorder
+            x=self.countRecorder.get_count()
+        self.x_list.append(x)
+        self.y_list.append(y)
+
+    def show_the_plot_and_save(self):
+        
+        import os
+        path=os.getcwd()
+        path=os.path.abspath(path)
+        os.chdir(path)
+        plt.rcParams['savefig.dpi'] = 500
+        plt.title(self.save_name)
+        plt.plot(self.x_list,self.y_list)
+        #plt.show()
+        plt.savefig('./{}.jpg'.format(self.save_name))
+        plt.cla()

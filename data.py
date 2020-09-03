@@ -5,6 +5,7 @@ import  scipy.sparse as sp
 from    scipy.sparse.linalg.eigen.arpack import eigsh
 import  sys
 import time
+import torch
 
 def parse_index_file(filename):
     """
@@ -57,7 +58,11 @@ def few_labels(adj, features, labels ,args):
     # Check each node and put them into the corresponding pot of collection set
     for i in range(number_samples): 
         # get the class of this node
-        temp_class=[int(i) for i in list(y_total[i])].index(1)
+        temp_list=[int(i) for i in list(y_total[i])]
+        if 1 in temp_list:
+            temp_class=[int(i) for i in list(y_total[i])].index(1)
+        else:
+            temp_class=0  # give a non-sense number
         # put the id of this node into the corresponding pot 
         collection[temp_class].append(i)
     
@@ -145,7 +150,7 @@ def load_data(dataset_str):
 
     labels = np.vstack((ally, ty))
     labels[test_idx_reorder, :] = labels[test_idx_range, :]
-
+    #raise Exception
     idx_test = test_idx_range.tolist()
     idx_train = range(len(y))
     idx_val = range(len(y), len(y)+500)
