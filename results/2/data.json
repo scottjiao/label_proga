@@ -1,0 +1,1 @@
+{"args": {"dataset": "cora", "model": "gcn", "learning_rate": 0.01, "epochs": 60, "hidden": 64, "dropout": 0.8, "weight_decay": 0.001, "early_stopping": 10, "max_degree": 3, "few_label_seed": 0, "few_label_number": 1, "confidence_threshold": 0.75, "feature_normalize": true, "exp_id": "2", "repeat_times": 10}, "mean": 0.18693412975831467, "std_error": 0.03747409982686517}

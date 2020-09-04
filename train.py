@@ -9,6 +9,7 @@ from    model import GCN
 from    config import  args
 from    utils import masked_loss, masked_acc, simple_ploter
 import  warnings
+import os
 warnings.filterwarnings("ignore", category=UserWarning)
 
 seed = 123
@@ -119,7 +120,23 @@ if __name__=='__main__':
             acc = masked_acc(out, test_label, test_mask)
             print('test acc:', acc.item())
             test_ploter.record_data(acc.item(),x=epoch)
-    test_ploter.show_the_plot_and_save()
+    
+    meta_results_path=os.path.join('.','results',args.exp_id)   #./results/exp_id
+    
+    results_path=os.path.join(meta_results_path,str(args.exp_times))    #./results/exp_id/exp_times
 
-    json_io=json_data_io(file_name={}args.exp_id)
-    json_io.save({'x_list':test_ploter.x_list,'y_list':test_ploter.y_list})
+    for path in [meta_results_path,results_path]:
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+
+
+
+    results_log_path= os.path.join(results_path,'log.txt')
+    results_data_path=os.path.join(results_path,'data')
+    json_io=json_data_io(file_name=results_data_path)
+    json_io.save({'x_list':test_ploter.x_list,'y_list':test_ploter.y_list,'args':vars(args)})
+
+    
+    test_ploter.save_name=os.path.join('results',args.exp_id,str(args.exp_times),'test_data')
+    test_ploter.show_the_plot_and_save()
