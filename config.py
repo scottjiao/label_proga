@@ -16,6 +16,7 @@ args.add_argument('--few_label_seed', type=int, default=0)
 args.add_argument('--few_label_number', type=int, default=1)
 args.add_argument('--confidence_threshold', type=float, default=0.6)
 args.add_argument('--feature_normalize', type=bool, default=True)
+args.add_argument('--exp_id', type=str, default='0')
 
 
 args = args.parse_args()

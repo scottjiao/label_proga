@@ -27,6 +27,19 @@ def sample_mask(idx, l):
 
 
 
+class json_data_io():
+
+    def __init__(self,file_name='temp'):
+        self.file_name=os.path.join('.','{}.json'.format(file_name))
+
+    def save(self,data_dict):
+        with open(self.file_name,'w') as f:
+            json.dump(data_dict,f)
+    
+    def load(self):
+        with open(self.file_name,'r') as f:
+            data_dict=json.load(f)
+        return data_dict
 
 
 def few_labels(adj, features, labels ,args):
