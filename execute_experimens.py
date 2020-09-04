@@ -34,6 +34,10 @@ print(vars(args))
 y_list=None
 x_list=None
 
+total_results_path=os.path.join('.','results')
+if not os.path.exists(total_results_path):
+    os.mkdir(total_results_path)
+
 meta_results_path=os.path.join('.','results',args.exp_id)   #./results/exp_id
 args_ioer=json_data_io(file_name=os.path.join(meta_results_path,'data'))
 
