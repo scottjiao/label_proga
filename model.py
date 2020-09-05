@@ -8,7 +8,7 @@ from    config import args
 class GCN(nn.Module):
 
 
-    def __init__(self, input_dim, output_dim, num_features_nonzero):
+    def __init__(self, input_dim, output_dim, num_features_nonzero,input_sparse):
         super(GCN, self).__init__()
 
         self.input_dim = input_dim # 1433
@@ -22,7 +22,7 @@ class GCN(nn.Module):
         self.layers = nn.Sequential(GraphConvolution(self.input_dim, args.hidden, num_features_nonzero,
                                                      activation=F.relu,
                                                      dropout=args.dropout,
-                                                     is_sparse_inputs=True),
+                                                     is_sparse_inputs=input_sparse),
 
                                     GraphConvolution(args.hidden, output_dim, num_features_nonzero,
                                                      activation=F.relu,

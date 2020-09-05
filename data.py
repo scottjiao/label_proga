@@ -86,7 +86,11 @@ def few_labels(adj, features, labels ,args):
     for j in range(number_class):
         # choose few labels from this set, by id.
         temp_list=collection[j]   
-        choosed_list.extend(np.random.choice(temp_list,size=args.few_label_number,replace=False))
+        if args.few_label_number>=len(temp_list):
+            chosen_size=len(temp_list)
+        else:
+            chosen_size=args.few_label_number
+        choosed_list.extend(np.random.choice(temp_list,size=chosen_size,replace=False))
     
     '''ids to matrix'''
     idx_test = sorted([i for i in list(range(number_samples)) if i not in choosed_list])
@@ -109,6 +113,36 @@ def few_labels(adj, features, labels ,args):
 
 
     return adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask
+
+
+
+def load_ogb_data(dataset_str):
+
+    import ogb
+    from ogb.nodeproppred.dataset import NodePropPredDataset
+
+    dataset=NodePropPredDataset(name =dataset_str)
+
+    graph, raw_labels=dataset[0]
+
+
+    labels=torch.zeros((len(raw_labels),int(max(raw_labels))+1)).scatter_(1,torch.from_numpy( raw_labels),1)
+    labels=labels.numpy()
+
+    features=graph['node_feat']
+    edge_lists=graph['edge_index']
+    edge_lists=[ (edge_lists[0][i],edge_lists[1][i])   for i in range(len(edge_lists[0]))]
+    adj=nx.adjacency_matrix(nx.from_edgelist(edge_lists))
+
+
+    print(labels.shape)
+    print(adj.shape)
+    print(features.shape)
+    
+    #raise Exception
+
+
+    return adj, features, labels, None, None, None, None, None, None
 
 
 
@@ -205,7 +239,7 @@ def sparse_to_tuple(sparse_mx):
     return sparse_mx
 
 
-def preprocess_features(features):
+def preprocess_features(features,sparsity=True):
     """
     Row-normalize feature matrix and convert to tuple representation
     """
@@ -214,7 +248,11 @@ def preprocess_features(features):
     r_inv[np.isinf(r_inv)] = 0. # zero inf data
     r_mat_inv = sp.diags(r_inv) # sparse diagonal matrix, [2708, 2708]
     features = r_mat_inv.dot(features) # D^-1:[2708, 2708]@X:[2708, 2708]
-    return sparse_to_tuple(features) # [coordinates, data, shape], []
+    if sparsity:
+
+        return sparse_to_tuple(features) # [coordinates, data, shape], []
+    else:
+        return features
 
 
 def normalize_adj(adj):

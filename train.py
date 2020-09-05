@@ -4,21 +4,31 @@ from    torch import optim
 from    torch.nn import functional as F
 
 import  numpy as np
-from    data import few_labels, load_data, preprocess_features, preprocess_adj, sparse_to_tuple, json_data_io
+from    data import few_labels, load_data, preprocess_features, preprocess_adj, sparse_to_tuple, json_data_io, load_ogb_data
 from    model import GCN
 from    config import  args
 from    utils import masked_loss, masked_acc, simple_ploter
 import  warnings
 import os
+
+import  scipy.sparse as sp
+
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 seed = 123
 np.random.seed(seed)
 torch.random.manual_seed(seed)
 
+
+
+
 if __name__=='__main__':
     # load data
+    if 'ogb' in args.dataset:
+        load_data=load_ogb_data
     adj, features,labels, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(args.dataset)
+    # make data few-labels
     adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask=few_labels(adj, features, labels,args)
     print('adj:', adj.shape)
     print('features:', features.shape)
@@ -26,10 +36,13 @@ if __name__=='__main__':
     print('mask:', train_mask.shape, val_mask.shape, test_mask.shape)
 
     # D^-1@X
+    
+    feature_sparsity=sp.issparse(features)
     if args.feature_normalize:
-        features = preprocess_features(features) # [49216, 2], [49216], [2708, 1433]
-    else:
+        features = preprocess_features(features,sparsity=feature_sparsity) # [49216, 2], [49216], [2708, 1433]
+    elif feature_sparsity:
         features = sparse_to_tuple(features)
+
 
     supports = preprocess_adj(adj)
 
@@ -49,9 +62,12 @@ if __name__=='__main__':
     test_label = test_label.argmax(dim=1)
     test_mask = torch.from_numpy(test_mask.astype(np.int)).to(device).bool()
 
-    i = torch.from_numpy(features[0]).long().to(device)
-    v = torch.from_numpy(features[1]).to(device)
-    feature = torch.sparse.FloatTensor(i.t(), v, features[2]).to(device)
+    if feature_sparsity:
+        i = torch.from_numpy(features[0]).long().to(device)
+        v = torch.from_numpy(features[1]).to(device)
+        feature = torch.sparse.FloatTensor(i.t(), v, features[2]).to(device)
+    else:
+        feature = torch.from_numpy(features).to(device)
 
     i = torch.from_numpy(supports[0]).long().to(device)
     v = torch.from_numpy(supports[1]).to(device)
@@ -59,11 +75,15 @@ if __name__=='__main__':
 
     print('x :', feature)
     print('sp:', support)
-    num_features_nonzero = feature._nnz()
+    try:
+        num_features_nonzero = feature._nnz()
+    except:
+        num_features_nonzero=0
     feat_dim = feature.shape[1]
 
 
-    net = GCN(feat_dim, num_classes, num_features_nonzero)
+
+    net = GCN(feat_dim, num_classes, num_features_nonzero, input_sparse=feature_sparsity)
     net.to(device)
     optimizer = optim.Adam(net.parameters(), lr=args.learning_rate)
 
@@ -78,29 +98,30 @@ if __name__=='__main__':
         loss = masked_loss(out, train_label, train_mask)
         #print(train_label[222:888])
         loss += args.weight_decay * net.l2_loss()
-        '''psuedo label loss'''
-        #softmax the outputs
-        softmaxed_out=F.softmax(out,dim=1)
-        with torch.no_grad():
-            #get psuedo labes
-            psuedo_labels= softmaxed_out.argmax(dim=1)
-            #true label filtering
-            psuedo_labels=psuedo_labels*(1-train_mask.int())+train_label*train_mask.int()
-            #get confidence
-            placeholder_1=psuedo_labels.unsqueeze(-1).to(device)
-            one_hot_pred_labels=torch.zeros(softmaxed_out.shape).to(device).scatter_(1,placeholder_1,1)
-            confidence=torch.max( torch.mul( softmaxed_out,one_hot_pred_labels) ,dim=1 )[0] 
-            #threshold confidence
-            confidence=torch.relu(confidence-args.confidence_threshold)
-            #class eq
-            class_eqer_counter=torch.sum(one_hot_pred_labels,dim=0)
-            class_eqer_executor=torch.div(one_hot_pred_labels,(class_eqer_counter+1))
-            confidence*=torch.max(class_eqer_executor,dim=1)[0]
-            #raise Exception
-        #label propagation
-        #confidence=torch.sparse.mm(support,confidence.unsqueeze(-1)).reshape(-1)
-        #add the self-training loss
-        loss+= masked_loss(out, psuedo_labels, confidence)
+        if args.with_psuedo_loss:
+            '''psuedo label loss'''
+            #softmax the outputs
+            softmaxed_out=F.softmax(out,dim=1)
+            with torch.no_grad():
+                #get psuedo labes
+                psuedo_labels= softmaxed_out.argmax(dim=1)
+                #true label filtering
+                psuedo_labels=psuedo_labels*(1-train_mask.int())+train_label*train_mask.int()
+                #get confidence
+                placeholder_1=psuedo_labels.unsqueeze(-1).to(device)
+                one_hot_pred_labels=torch.zeros(softmaxed_out.shape).to(device).scatter_(1,placeholder_1,1)
+                confidence=torch.max( torch.mul( softmaxed_out,one_hot_pred_labels) ,dim=1 )[0] 
+                #threshold confidence
+                confidence=torch.relu(confidence-args.confidence_threshold)
+                #class eq
+                class_eqer_counter=torch.sum(one_hot_pred_labels,dim=0)
+                class_eqer_executor=torch.div(one_hot_pred_labels,(class_eqer_counter+1))
+                confidence*=torch.max(class_eqer_executor,dim=1)[0]
+                #raise Exception
+            #label propagation
+            #confidence=torch.sparse.mm(support,confidence.unsqueeze(-1)).reshape(-1)
+            #add the self-training loss
+            loss+= masked_loss(out, psuedo_labels, confidence)
 
 
         acc = masked_acc(out, train_label, train_mask)
