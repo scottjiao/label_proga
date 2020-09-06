@@ -82,9 +82,9 @@ if __name__=='__main__':
         num_features_nonzero=0
     feat_dim = feature.shape[1]
 
+    hidden_list=eval(args.hidden_list)
 
-
-    net = GCN(feat_dim, num_classes, num_features_nonzero, input_sparse=feature_sparsity)
+    net = GCN(feat_dim, num_classes, num_features_nonzero, feature_sparsity,hidden_list,args)
     net.to(device)
     optimizer = optim.Adam(net.parameters(), lr=args.learning_rate)
 
