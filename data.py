@@ -139,6 +139,25 @@ def load_ogb_data(dataset_str):
     print(adj.shape)
     print(features.shape)
     
+    idx_split=dataset.get_idx_split()
+
+    #raise Exception
+
+    idx_test = idx_split['test']
+    idx_train = idx_split['train']
+    idx_val = idx_split['valid']
+
+    train_mask = sample_mask(idx_train, labels.shape[0])
+    val_mask = sample_mask(idx_val, labels.shape[0])
+    test_mask = sample_mask(idx_test, labels.shape[0])
+
+    y_train = np.zeros(labels.shape)
+    y_val = np.zeros(labels.shape)
+    y_test = np.zeros(labels.shape)
+    y_train[train_mask, :] = labels[train_mask, :]
+    y_val[val_mask, :] = labels[val_mask, :]
+    y_test[test_mask, :] = labels[test_mask, :]
+    
     #raise Exception
 
 

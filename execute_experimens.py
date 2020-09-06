@@ -16,10 +16,10 @@ args = argparse.ArgumentParser()
 args.add_argument('--dataset', default='ogbn-arxiv')
 args.add_argument('--model', default='gcn')
 args.add_argument('--learning_rate', type=float, default=1e-3)    # 1e-2 for coras
-args.add_argument('--epochs', type=int, default=1000)
-args.add_argument('--hidden', type=int, default=64)
-args.add_argument('--dropout', type=float, default=0.5)     #0.8 for coras
-args.add_argument('--weight_decay', type=float, default=1e-3)   # 1e-3 for coras
+args.add_argument('--epochs', type=int, default=100)
+args.add_argument('--hidden', type=int, default=128)
+args.add_argument('--dropout', type=float, default=0.8)     #0.8 for coras
+args.add_argument('--weight_decay', type=float, default=0)   # 1e-3 for coras
 args.add_argument('--early_stopping', type=int, default=10)
 args.add_argument('--max_degree', type=int, default=3)
 args.add_argument('--few_label_seed', type=int, default=1)
@@ -27,9 +27,10 @@ args.add_argument('--few_label_number', type=int, default=10)
 args.add_argument('--confidence_threshold', type=float, default=0.75)
 args.add_argument('--feature_normalize', type=bool, default=True)
 args.add_argument('--with_psuedo_loss', type=bool, default=False)
+args.add_argument('--standard_split', type=bool, default=False)
 
 
-args.add_argument('--exp_id', default='arxiv_10')
+args.add_argument('--exp_id', default='arxiv_10_0')
 args.add_argument('--repeat_times', type=int, default=10)
 
 args = args.parse_args()
@@ -49,7 +50,7 @@ args_ioer=json_data_io(file_name=os.path.join(meta_results_path,'data'))
 
 for i in range(args.repeat_times):
     
-    run('python train.py --exp_id {} --exp_times {} --few_label_seed {} --dataset {} --model {} --learning_rate {} --epochs {} --hidden {} --dropout {} --weight_decay {} --early_stopping {} --max_degree {}  --few_label_number {} --confidence_threshold {} --feature_normalize {} --with_psuedo_loss {}'.format(args.exp_id,i,i, args.dataset, args.model, args.learning_rate, args.epochs, args.hidden, args.dropout, args.weight_decay, args.early_stopping, args.max_degree, args.few_label_number, args.confidence_threshold, args.feature_normalize,args.with_psuedo_loss),shell=True)
+    run('python train.py --exp_id {} --exp_times {} --few_label_seed {} --dataset {} --model {} --learning_rate {} --epochs {} --hidden {} --dropout {} --weight_decay {} --early_stopping {} --max_degree {}  --few_label_number {} --confidence_threshold {} --feature_normalize {} --with_psuedo_loss {} --standard_split {}'.format(args.exp_id,i,i, args.dataset, args.model, args.learning_rate, args.epochs, args.hidden, args.dropout, args.weight_decay, args.early_stopping, args.max_degree, args.few_label_number, args.confidence_threshold, args.feature_normalize,args.with_psuedo_loss,args.standard_split),shell=True)
 
     # collect data
     results_path=os.path.join(meta_results_path,str(i))    #./results/exp_id/exp_times
@@ -75,7 +76,8 @@ for i in range(len(y_list)):
     statistics_var.append(np.var(y_list[i]))
     statistics_std.append(np.std(y_list[i]))
     error_limit.append([statistics_std[-1] ])
-    plt.scatter(x_list,[j[i] for j in  y_list])
+for exp_cut in range(len(y_list[0])):
+    plt.scatter(x_list,[epoch_cut[exp_cut] for epoch_cut in  y_list])
 plt.errorbar(x_list, statistics_mean, yerr=error_limit, fmt=":o", ecolor="y", elinewidth=4,
              ms=5, mfc="c", mec="r", capsize=7, capthick=8)
 plt.savefig(os.path.join(meta_results_path,'error_plot.jpg'))

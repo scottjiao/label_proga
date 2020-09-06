@@ -29,7 +29,8 @@ if __name__=='__main__':
         load_data=load_ogb_data
     adj, features,labels, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(args.dataset)
     # make data few-labels
-    adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask=few_labels(adj, features, labels,args)
+    if not args.standard_split:
+        adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask=few_labels(adj, features, labels,args)
     print('adj:', adj.shape)
     print('features:', features.shape)
     print('y:', y_train.shape, y_val.shape, y_test.shape)
