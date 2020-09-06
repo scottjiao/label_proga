@@ -161,7 +161,7 @@ def load_ogb_data(dataset_str):
     #raise Exception
 
 
-    return adj, features, labels, None, None, None, None, None, None
+    return adj, features,labels, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 
 
