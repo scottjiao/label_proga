@@ -16,9 +16,9 @@ args.add_argument('--max_degree', type=int, default=3)
 args.add_argument('--few_label_seed', type=int, default=1)
 args.add_argument('--few_label_number', type=int, default=10)
 args.add_argument('--confidence_threshold', type=float, default=0.75)
-args.add_argument('--feature_normalize', type=bool, default=True)
-args.add_argument('--with_psuedo_loss', type=bool, default=False)
-args.add_argument('--standard_split', type=bool, default=True)
+args.add_argument('--feature_normalize',  default='True')
+args.add_argument('--with_psuedo_loss',  default='False')
+args.add_argument('--standard_split', default='True')
 args.add_argument('--hidden_list', type=str, default='[256,256,256]')
 
 

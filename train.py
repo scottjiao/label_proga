@@ -20,7 +20,9 @@ seed = 123
 np.random.seed(seed)
 torch.random.manual_seed(seed)
 
-
+#bool the str
+for arg in [args.standard_split,args.with_psuedo_loss,args.feature_normalize]:
+    arg=eval(arg)
 
 
 if __name__=='__main__':
@@ -28,6 +30,7 @@ if __name__=='__main__':
     if 'ogb' in args.dataset:
         load_data=load_ogb_data
     adj, features,labels, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data(args.dataset)
+    
     # make data few-labels
     if not args.standard_split:
         adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask=few_labels(adj, features, labels,args)
