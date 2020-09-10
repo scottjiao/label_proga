@@ -7,7 +7,7 @@ import  numpy as np
 from    data import few_labels, load_data, preprocess_features, preprocess_adj, sparse_to_tuple, json_data_io, load_ogb_data
 from    model import GCN
 from    config import  args
-from    utils import masked_loss, masked_acc, simple_ploter ,adjust_learning_rate
+from    utils import masked_loss, masked_acc, simple_ploter
 import  warnings
 import os
 
@@ -89,23 +89,19 @@ if __name__=='__main__':
 
     net = GCN(feat_dim, num_classes, num_features_nonzero, feature_sparsity,hidden_list,args)
     net.to(device)
-    optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(                   # dgi trick
-        optimizer, mode="min", factor=0.5, patience=100, verbose=True, min_lr=1e-3
-    )
+    optimizer = optim.Adam(net.parameters(), lr=args.learning_rate)
 
     #ploter initialization
     test_ploter=simple_ploter(save_name='test_of_{}'.format(args.exp_id))
-    train_ploter=simple_ploter(save_name='train_of_{}'.format(args.exp_id))
     for epoch in range(args.epochs):
         #train
         net.train()
-        adjust_learning_rate(optimizer, args.learning_rate, epoch)   # dgi trick
+
         out = net((feature, support))
         out = out[0]
         loss = masked_loss(out, train_label, train_mask)
         #print(train_label[222:888])
-        #loss += args.weight_decay * net.l2_loss()
+        loss += args.weight_decay * net.l2_loss()
         if args.with_psuedo_loss:
             '''psuedo label loss'''
             #softmax the outputs
@@ -132,18 +128,15 @@ if __name__=='__main__':
             loss+= masked_loss(out, psuedo_labels, confidence)
 
 
-        train_acc = masked_acc(out, train_label, train_mask)
+        acc = masked_acc(out, train_label, train_mask)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        lr_scheduler.step(loss)
-
-
         if epoch % 10 == 0:
 
-            print('Training epoch={}'.format(epoch), 'train loss={}'.format(loss.item()), 'train acc={}'.format(train_acc.item()))
+            print('Training epoch={}'.format(epoch), 'train loss={}'.format(loss.item()), 'train acc={}'.format(acc.item()))
 
             #test
             net.eval()
@@ -152,7 +145,6 @@ if __name__=='__main__':
             acc = masked_acc(out, test_label, test_mask)
             print('test acc:', acc.item())
             test_ploter.record_data(acc.item(),x=epoch)
-            train_ploter.record_data(train_acc.item(),x=epoch)
     
     meta_results_path=os.path.join('.','results',args.exp_id)   #./results/exp_id
     
@@ -168,11 +160,8 @@ if __name__=='__main__':
     results_log_path= os.path.join(results_path,'log.txt')
     results_data_path=os.path.join(results_path,'data')
     json_io=json_data_io(file_name=results_data_path)
-    json_io.save({'test_x_list':test_ploter.x_list,'test_y_list':test_ploter.y_list,'args':vars(args)})
+    json_io.save({'x_list':test_ploter.x_list,'y_list':test_ploter.y_list,'args':vars(args)})
 
     
     test_ploter.save_name=os.path.join('results',args.exp_id,str(args.exp_times),'test_data')
     test_ploter.show_the_plot_and_save()
-
-    train_ploter.save_name=os.path.join('results',args.exp_id,str(args.exp_times),'train_data')
-    train_ploter.show_the_plot_and_save()
