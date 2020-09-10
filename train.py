@@ -86,8 +86,9 @@ if __name__=='__main__':
     feat_dim = feature.shape[1]
 
     hidden_list=eval(args.hidden_list)
+    raise Exception
 
-    net = GCN(feat_dim, num_classes, num_features_nonzero, feature_sparsity,hidden_list,args)
+    net = GCN(feat_dim, num_classes,hidden_list,args)
     net.to(device)
     optimizer = optim.Adam(net.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(                   # dgi trick

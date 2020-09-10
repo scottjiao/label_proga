@@ -2,6 +2,7 @@ import  torch
 from    torch import nn
 from    torch.nn import functional as F
 from    layer import GraphConvolution
+from torch_geometric.nn import GCNConv
 from collections import OrderedDict
 
 #from    config import args
@@ -9,7 +10,7 @@ from collections import OrderedDict
 class GCN(nn.Module):
 
 
-    def __init__(self, input_dim, output_dim, num_features_nonzero,input_sparse,hidden_list,args):
+    def __init__(self, input_dim, output_dim,hidden_list,args):
         super(GCN, self).__init__()
 
         self.input_dim = input_dim
@@ -17,7 +18,6 @@ class GCN(nn.Module):
 
         print('input dim:', input_dim)
         print('output dim:', output_dim)
-        print('num_features_nonzero:', num_features_nonzero)
 
 
         dim_list=hidden_list
@@ -25,15 +25,16 @@ class GCN(nn.Module):
         dim_list.insert(0,input_dim)
         self.dim_list=dim_list
 
-        self.convs=nn.ModuleList()
-        self.bns=nn.ModuleList()#trick from dgl
+        self.conv_layers=nn.ModuleList()
+        self.bn_layers=nn.ModuleList()#trick from dgl
+        self.activation_funcs=[]
+        self.dropout_values=[]
 
-        self.convs.append(GraphConvolution(dim_list[0], dim_list[1],           num_features_nonzero,
-                                                     activation=F.relu,
-                                                     dropout=min(0.1,args.dropout),     #trick from dgl
-                                                     is_sparse_inputs=input_sparse,
-                                                     bias=args.bias) )
-        self.bns.append(nn.BatchNorm1d(dim_list[1]))
+        self.conv_layers.append(GCNConv(dim_list[0],dim_list[1], cached=True) )
+        self.bn_layers.append(nn.BatchNorm1d(dim_list[1]))
+        self.activation_funcs.append(F.relu)
+        self.dropout_values.append(min(0.1,args.dropout))  # trick
+
 
         for i in range(len(dim_list)-2):
             if i<len(dim_list)-2:
@@ -44,31 +45,14 @@ class GCN(nn.Module):
                 bn=nn.Identity() #trick from dgl
                 activation=lambda x:x #trick from dgl
                 dropout=0 #trick from dgl
-            conv=GraphConvolution(dim_list[i+1], dim_list[i+2], num_features_nonzero,
-                                                     activation=activation,
-                                                     dropout=dropout,
-                                                     is_sparse_inputs=False,
-                                                     bias=args.bias) 
-            self.convs.append(conv)
-            self.bns.append(bn)
+            conv=GCNConv(dim_list[i+1], dim_list[i+2], cached=True) 
+            self.conv_layers.append(conv)
+            self.bn_layers.append(bn)
+            self.activation_funcs.append(activation)
+            self.dropout_values.append(dropout)
             
             
 
-
-        
-
-
-        '''self.layers = nn.Sequential(GraphConvolution(self.input_dim, args.hidden, num_features_nonzero,
-                                                     activation=F.relu,
-                                                     dropout=args.dropout,
-                                                     is_sparse_inputs=input_sparse),
-
-                                    GraphConvolution(args.hidden, output_dim, num_features_nonzero,
-                                                     activation=F.relu,
-                                                     dropout=args.dropout,
-                                                     is_sparse_inputs=False),
-
-                                    )'''
 
     def forward(self, inputs):
         x, support = inputs
@@ -77,8 +61,10 @@ class GCN(nn.Module):
 
         for i in range(len(self.dim_list)-1):   
             #print('forward {} layer'.format(i))
-            x,support=self.convs[i]((x,support))
-            x=self.bns[i](x)
+            x=self.conv_layers[i](x,support)
+            x=  self.bn_layers[i](x)
+            x=  self.activation_funcs(x)
+            x= F.dropout(x, self.dropout_values[i], training=self.training)
 
 
 

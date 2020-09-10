@@ -132,7 +132,7 @@ def load_ogb_data(dataset_str):
     features=graph['node_feat']
     edge_lists=graph['edge_index']
     edge_lists=[ (edge_lists[0][i],edge_lists[1][i])   for i in range(len(edge_lists[0]))]
-    adj=nx.adjacency_matrix(nx.from_edgelist(edge_lists).to_undirected())
+    adj=nx.adjacency_matrix(nx.from_edgelist(edge_lists))
 
 
     print(labels.shape)
