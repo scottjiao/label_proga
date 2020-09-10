@@ -8,7 +8,10 @@ import numpy as np
 import csv
 from matplotlib import pyplot as plt
 
-
+def adjust_learning_rate(optimizer, lr, epoch):
+    if epoch <= 50:
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr * epoch / 50
 
 def masked_loss(out, label, mask):
     loss = F.cross_entropy(out, label, reduction='none')

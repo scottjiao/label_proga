@@ -15,11 +15,7 @@ args = argparse.ArgumentParser()
 #args.add_argument('--dataset', default='pubmed')
 args.add_argument('--dataset', default='ogbn-arxiv')
 args.add_argument('--model', default='gcn')
-args.add_argument('--learning_rate', type=float, default=1e-3)    # 1e-2 for coras
 args.add_argument('--epochs', type=int, default=1000)
-#args.add_argument('--hidden', type=int, default=128)
-args.add_argument('--dropout', type=float, default=0.5)     #0.8 for coras
-args.add_argument('--weight_decay', type=float, default=0)   # 1e-3 for coras
 args.add_argument('--early_stopping', type=int, default=10)
 args.add_argument('--max_degree', type=int, default=3)
 args.add_argument('--few_label_seed', type=int, default=1)
@@ -28,11 +24,21 @@ args.add_argument('--confidence_threshold', type=float, default=0.75)
 args.add_argument('--feature_normalize', default='True')
 args.add_argument('--with_psuedo_loss', default='False')
 args.add_argument('--standard_split', default='True')
-args.add_argument('--hidden_list', type=str, default='[256,256,256]')
+
+args.add_argument('--learning_rate', type=float, default=1e-3)                  # 1e-2 for arxiv
+#args.add_argument('--learning_rate', type=float, default=1e-2)                 # 1e-2 for coras
+args.add_argument('--dropout', type=float, default=0.5)                         # 0.5  for arxiv
+#args.add_argument('--dropout', type=float, default=0.8)                        # 0.8  for coras
+args.add_argument('--weight_decay', type=float, default=0)                      # 0    for arxiv
+#args.add_argument('--weight_decay', type=float, default=1e-3)                  # 1e-3 for coras
+args.add_argument('--hidden_list', type=str, default='[256]')                   #      for arxiv
+#args.add_argument('--hidden_list', type=str, default='[64]')                   #      for coras
+args.add_argument('--bias', default='True')                                     #      for arxiv
+#args.add_argument('--bias', default='False')                                    #      for coras
 
 
 args.add_argument('--exp_id', default='arxiv_std_gcn_0')
-args.add_argument('--repeat_times', type=int, default=10)
+args.add_argument('--repeat_times', type=int, default=1)
 
 args = args.parse_args()
 
@@ -58,10 +64,10 @@ for i in range(args.repeat_times):
     temp_ioer=json_data_io(file_name=os.path.join(results_path,'data'))
     temp_data=temp_ioer.load()
     if y_list==None:
-        y_list=[[j] for j in temp_data['y_list']]
-        x_list=temp_data['x_list']
+        y_list=[[j] for j in temp_data['test_y_list']]
+        x_list=temp_data['test_x_list']
     for j in range(len(y_list)):
-        y_list[j].append(temp_data['y_list'][j])
+        y_list[j].append(temp_data['test_y_list'][j])
 
 
 # get statistics
@@ -71,7 +77,12 @@ statistics_var=[]
 statistics_std=[]
 error_limit=[]
 
-plt.title('{} of label {}'.format(args.dataset,args.few_label_number))
+if args.standard_split=='False':
+    plt.title('{} of label {}'.format(args.dataset,args.few_label_number))
+else:
+    plt.title('{} of std split'.format(args.dataset))
+
+
 for i in range(len(y_list)):
     statistics_mean.append(np.mean(y_list[i]))
     statistics_var.append(np.var(y_list[i]))
