@@ -30,7 +30,7 @@ class GCN(nn.Module):
 
         self.convs.append(GraphConvolution(dim_list[0], dim_list[1],           num_features_nonzero,
                                                      activation=F.relu,
-                                                     dropout=min(0.1,args.dropout),     #trick from dgl
+                                                     dropout=args.dropout,    
                                                      is_sparse_inputs=input_sparse,
                                                      bias=args.bias) )
         self.bns.append(nn.BatchNorm1d(dim_list[1]))

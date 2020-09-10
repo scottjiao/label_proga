@@ -8,6 +8,17 @@ import numpy as np
 import csv
 from matplotlib import pyplot as plt
 
+
+class debugPrint():
+
+    def __init__(self,debug=True):
+        self.debug=debug
+
+    def __call__(self,*args):
+        if self.debug:
+            print('Debug: ',args)
+
+
 def adjust_learning_rate(optimizer, lr, epoch):
     if epoch <= 50:
         for param_group in optimizer.param_groups:
