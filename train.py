@@ -102,7 +102,6 @@ if __name__=='__main__':
 
     #ploter initialization
     test_ploter=simple_ploter(save_name='test_of_{}'.format(args.exp_id))
-    train_ploter=simple_ploter(save_name='train_of_{}'.format(args.exp_id))
     for epoch in range(args.epochs):
         #train
         net.train()
@@ -142,7 +141,7 @@ if __name__=='__main__':
             loss+= masked_loss(out, psuedo_labels, confidence)
 
 
-        train_acc = masked_acc(out, train_label, train_mask)
+        acc = masked_acc(out, train_label, train_mask)
 
         optimizer.zero_grad()
         loss.backward()
@@ -168,7 +167,6 @@ if __name__=='__main__':
             acc = masked_acc(out, test_label, test_mask)
             DebugPrint('test acc:', acc.item())
             test_ploter.record_data(acc.item(),x=epoch)
-            train_ploter.record_data(train_acc.item(),x=epoch)
     
     meta_results_path=os.path.join('.','results',args.exp_id)   #./results/exp_id
     
@@ -184,11 +182,8 @@ if __name__=='__main__':
     results_log_path= os.path.join(results_path,'log.txt')
     results_data_path=os.path.join(results_path,'data')
     json_io=json_data_io(file_name=results_data_path)
-    json_io.save({'test_x_list':test_ploter.x_list,'test_y_list':test_ploter.y_list,'args':vars(args)})
+    json_io.save({'x_list':test_ploter.x_list,'y_list':test_ploter.y_list,'args':vars(args)})
 
     
     test_ploter.save_name=os.path.join('results',args.exp_id,str(args.exp_times),'test_data')
     test_ploter.show_the_plot_and_save()
-
-    train_ploter.save_name=os.path.join('results',args.exp_id,str(args.exp_times),'train_data')
-    train_ploter.show_the_plot_and_save()

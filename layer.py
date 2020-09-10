@@ -10,7 +10,7 @@ class GraphConvolution(nn.Module):
     def __init__(self, input_dim, output_dim, num_features_nonzero,
                  dropout=0.,
                  is_sparse_inputs=False,
-                 bias=None,
+                 bias=False,
                  activation = F.relu,
                  featureless=False):
         super(GraphConvolution, self).__init__()
@@ -26,7 +26,7 @@ class GraphConvolution(nn.Module):
         self.weight = nn.Parameter(torch.randn(input_dim, output_dim))
         self.bias = None
         if bias:
-            self.bias = nn.Parameter(torch.ones(output_dim))
+            self.bias = nn.Parameter(torch.zeros(output_dim))
 
 
     def forward(self, inputs):

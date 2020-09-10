@@ -1,11 +1,10 @@
 import  argparse
 
 args = argparse.ArgumentParser()
-
-#args.add_argument('--dataset', default='cora')
+args.add_argument('--dataset', default='cora')
 #args.add_argument('--dataset', default='citeseer')
 #args.add_argument('--dataset', default='pubmed')
-args.add_argument('--dataset', default='ogbn-arxiv')
+#args.add_argument('--dataset', default='ogbn-arxiv')
 args.add_argument('--model', default='gcn')
 args.add_argument('--epochs', type=int, default=500)
 args.add_argument('--early_stopping', type=int, default=10)
@@ -13,7 +12,8 @@ args.add_argument('--max_degree', type=int, default=3)
 args.add_argument('--few_label_seed', type=int, default=1)
 args.add_argument('--few_label_number', type=int, default=10)
 args.add_argument('--confidence_threshold', type=float, default=0.75)
-args.add_argument('--with_psuedo_loss', default='False')
+args.add_argument('--feature_normalize',  default='True')
+args.add_argument('--with_psuedo_loss',  default='False')
 args.add_argument('--standard_split', default='True')
 args.add_argument('--debug', default='True')
 
@@ -32,7 +32,7 @@ args.add_argument('--bias', default='True')                                     
 #args.add_argument('--bias', default='False')                                    #      for coras
 
 
-args.add_argument('--exp_id', type=str, default='arxiv_std_gcn_0')
+args.add_argument('--exp_id', type=str, default='arxiv_std_0')
 args.add_argument('--exp_times', type=str, default='0')
 
 
