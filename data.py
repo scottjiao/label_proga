@@ -9,6 +9,8 @@ import torch
 import os
 import json
 
+from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
+
 def parse_index_file(filename):
     """
     Parse index file.
