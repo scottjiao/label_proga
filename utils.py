@@ -128,24 +128,65 @@ class simple_ploter():
 
 
 
-def train(model, data, train_idx, optimizer):
+def train(model, data, train_idx, optimizer,train_mask,val_mask,test_mask,device,args):
     model.train()
 
     optimizer.zero_grad()
-    out = model(data.x, data.adj_t)[train_idx]
+    log_softmax_all_out,softmax_all_out=model(data.x, data.adj_t)
+    out_of_training_samples = log_softmax_all_out[train_idx]
     #raise Exception
-    loss = F.nll_loss(out, data.y.squeeze(1)[train_idx])
+    loss = F.nll_loss(out_of_training_samples, data.y.squeeze(1)[train_idx])
+
+    
+    if args.with_psuedo_loss:
+        '''psuedo label loss'''
+        train_label=softmax_all_out.argmax(dim=1)
+        softmaxed_out=softmax_all_out
+        with torch.no_grad():
+            #get psuedo labes
+            psuedo_labels= softmaxed_out.argmax(dim=1)
+            #true label filtering
+            psuedo_labels=psuedo_labels*(1-train_mask.int())+train_label*train_mask.int()
+            #get confidence
+            placeholder_1=psuedo_labels.unsqueeze(-1).to(device)
+            one_hot_pred_labels=torch.zeros(softmax_all_out.shape).to(device).scatter_(1,placeholder_1,1)
+            confidence=torch.max( torch.mul( softmax_all_out,one_hot_pred_labels) ,dim=1 )[0] 
+            #threshold confidence
+            confidence=torch.relu(confidence-args.confidence_threshold)
+            #class eq
+            class_eqer_counter=torch.sum(one_hot_pred_labels,dim=0)
+            class_eqer_executor=torch.div(one_hot_pred_labels,(class_eqer_counter+1))
+            confidence*=torch.max(class_eqer_executor,dim=1)[0]
+            #raise Exception
+        #label propagation
+        #confidence=torch.sparse.mm(support,confidence.unsqueeze(-1)).reshape(-1)
+        #add the self-training loss
+        #loss+= masked_loss(all_out, psuedo_labels, confidence)  
+        mask=confidence
+
+        temp_loss=-torch.log(torch.max(softmax_all_out*one_hot_pred_labels,dim=1)[0])
+
+        mask = mask.float()
+        mask = mask / mask.mean()
+        temp_loss *= mask
+        temp_loss = temp_loss.mean()
+        loss+=temp_loss
+
+
+
+
+
     loss.backward()
     optimizer.step()
 
-    return loss.item(),out
+    return loss.item()
 
 
 @torch.no_grad()
 def test(model, data, split_idx, evaluator):
     model.eval()
 
-    out = model(data.x, data.adj_t)
+    out,_ = model(data.x, data.adj_t)
     y_pred = out.argmax(dim=-1, keepdim=True)
 
     train_acc = evaluator.eval({

@@ -30,7 +30,7 @@ class Logger(object):
 
     def add_result(self, run, result):
         assert len(result) == 3
-        assert run >= 0 and run < len(self.results)
+        #assert run >= 0 and run < len(self.results)
         self.results[run].append(result)
 
     def print_statistics(self, run=None):
@@ -83,6 +83,7 @@ if __name__=='__main__':
     device = f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu'
     device = torch.device(device)
 
+    #args.device=device
     dataset = PygNodePropPredDataset(name='ogbn-arxiv',
                                      transform=T.ToSparseTensor())
 
@@ -111,15 +112,15 @@ if __name__=='__main__':
 
     model.reset_parameters()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    logger = Logger(10, args)
 
     
     test_ploter=simple_ploter(save_name='test_of_{}'.format(args.exp_id))
     train_ploter=simple_ploter(save_name='train_of_{}'.format(args.exp_id))
     for epoch in range(1, 1 + args.epochs):
-        loss,out = train(model, data, train_idx, optimizer)
-        train_label=out.argmax(dim=1)
+        loss = train(model, data, train_idx, optimizer,train_mask,val_mask,test_mask,device,args)
         result = test(model, data, split_idx, evaluator)
-        #logger.add_result(run, result)
+        logger.add_result(int(args.exp_times  ), result)
 
         if epoch % 1 == 0:
             train_acc, valid_acc, test_acc = result
@@ -130,35 +131,10 @@ if __name__=='__main__':
                     f'Valid: {100 * valid_acc:.2f}% '
                     f'Test: {100 * test_acc:.2f}%')
 
-    if args.with_psuedo_loss:
-        '''psuedo label loss'''
-        softmaxed_out=out
-        with torch.no_grad():
-            #get psuedo labes
-            psuedo_labels= softmaxed_out.argmax(dim=1)
-            #true label filtering
-            psuedo_labels=psuedo_labels*(1-train_mask.int())+train_label*train_mask.int()
-            #get confidence
-            placeholder_1=psuedo_labels.unsqueeze(-1).to(device)
-            one_hot_pred_labels=torch.zeros(softmaxed_out.shape).to(device).scatter_(1,placeholder_1,1)
-            confidence=torch.max( torch.mul( softmaxed_out,one_hot_pred_labels) ,dim=1 )[0] 
-            #threshold confidence
-            confidence=torch.relu(confidence-args.confidence_threshold)
-            #class eq
-            class_eqer_counter=torch.sum(one_hot_pred_labels,dim=0)
-            class_eqer_executor=torch.div(one_hot_pred_labels,(class_eqer_counter+1))
-            confidence*=torch.max(class_eqer_executor,dim=1)[0]
-            #raise Exception
-        #label propagation
-        #confidence=torch.sparse.mm(support,confidence.unsqueeze(-1)).reshape(-1)
-        #add the self-training loss
-        loss+= masked_loss(out, psuedo_labels, confidence)
 
-
-
-    test_ploter.record_data(test_acc.item(),x=epoch)
-    train_ploter.record_data(train_acc.item(),x=epoch)
-
+        test_ploter.record_data(test_acc,x=epoch)
+        train_ploter.record_data(train_acc,x=epoch)
+logger.print_statistics(int(args.exp_times  ))
 meta_results_path=os.path.join('.','results',args.exp_id)   #./results/exp_id
 
 results_path=os.path.join(meta_results_path,str(args.exp_times))    #./results/exp_id/exp_times
